@@ -33,25 +33,26 @@ Responsible for establishing the database connection and implementing the fill()
 
 ### Member 3 — Search and Testing
 
-Responsible for implementing SQL queries in search(), handling the Not filtering logic, and testing employee search results.
+- Implemented the employee search query using JDBC prepared statements.
+- Added Department and Project filtering, including both Not checkboxes.
+- Multiple selections match any selected department or project.
 
 ## How to Run the Current GUI
 
 1. Open the project in Eclipse IDE.
 2. Open EmployeeSearchFrame.java.
 3. Run it as a Java Application.
-4. Click Fill to load sample department and project names.
+4. Enter a database name and click Fill to load department and project names.
 5. Select departments or projects.
-6. Click Search to display sample employee results.
+6. Click Search to display matching employee results.
 7. Click Clear to remove results and reset selections.
 
 ## Current Project Status
 
-The GUI is functional using sample data.
+The GUI, Fill, Clear, and database-backed Search methods are implemented.
 
-The Fill and Search methods are currently placeholders for the actual database functionality.
-
-The final application will integrate the database connection and SQL search queries developed by the other group members.
+Search can filter by selected departments and projects. The Not checkboxes exclude employees
+from the selected departments or employees who work on the selected projects.
 
 Additional Notes
 

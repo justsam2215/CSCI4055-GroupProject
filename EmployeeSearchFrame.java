@@ -25,6 +25,7 @@ import javax.swing.ScrollPaneConstants;
 // Prabin's part: imports for the database
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -194,9 +195,75 @@ JButton btnSearch = new JButton("Search");
 		textAreaEmployee.setText("Click Fill to load departments and projects.");
 	}
 
-	// TODO Member 3: replace this sample output with database-backed search.
 	private void search() {
-		textAreaEmployee.setText("John Smith\nFranklin Wong");
+		try {
+			if (conn == null || conn.isClosed()) {
+				JOptionPane.showMessageDialog(this,
+						"Click Fill to open a database first.",
+						"Error", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+
+			int[] selectedDepartments = lstDepartment.getSelectedIndices();
+			int[] selectedProjects = lstProject.getSelectedIndices();
+			StringBuilder sql = new StringBuilder(
+					"SELECT DISTINCT E.Fname, E.Minit, E.Lname FROM EMPLOYEE E");
+			List<Integer> values = new ArrayList<Integer>();
+			boolean hasWhere = false;
+
+			if (selectedDepartments.length > 0) {
+				sql.append(" WHERE E.Dno ");
+				if (chckbxNotDept.isSelected()) {
+					sql.append("NOT ");
+				}
+				sql.append("IN (");
+				for (int i = 0; i < selectedDepartments.length; i++) {
+					if (i > 0) sql.append(", ");
+					sql.append("?");
+					values.add(deptIds.get(selectedDepartments[i]));
+				}
+				sql.append(")");
+				hasWhere = true;
+			}
+
+			if (selectedProjects.length > 0) {
+				sql.append(hasWhere ? " AND " : " WHERE ");
+				if (chckbxNotProject.isSelected()) {
+					sql.append("NOT ");
+				}
+				sql.append("EXISTS (SELECT 1 FROM WORKS_ON W "
+						+ "WHERE W.Essn = E.Ssn AND W.Pno IN (");
+				for (int i = 0; i < selectedProjects.length; i++) {
+					if (i > 0) sql.append(", ");
+					sql.append("?");
+					values.add(projIds.get(selectedProjects[i]));
+				}
+				sql.append("))");
+			}
+
+			sql.append(" ORDER BY E.Lname, E.Fname");
+			StringBuilder employees = new StringBuilder();
+			try (PreparedStatement statement = conn.prepareStatement(sql.toString())) {
+				for (int i = 0; i < values.size(); i++) {
+					statement.setInt(i + 1, values.get(i));
+				}
+				try (ResultSet results = statement.executeQuery()) {
+					while (results.next()) {
+						employees.append(results.getString("Fname"));
+						String middleInitial = results.getString("Minit");
+						if (middleInitial != null && !middleInitial.isEmpty()) {
+							employees.append(" ").append(middleInitial).append(".");
+						}
+						employees.append(" ").append(results.getString("Lname")).append("\n");
+					}
+				}
+			}
+			textAreaEmployee.setText(employees.toString());
+		} catch (SQLException ex) {
+			JOptionPane.showMessageDialog(this,
+					"The employee search could not be completed.",
+					"Error", JOptionPane.ERROR_MESSAGE);
+		}
 	}
 
         // Prabin's part: connect to the database named in txtDatabase and fill both lists.
