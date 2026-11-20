@@ -1,2 +1,6 @@
+# Ignore compiled Java files
 *.class
-ConnTest.java
+
+# Ignore Eclipse build folders
+/bin/
+/target/
