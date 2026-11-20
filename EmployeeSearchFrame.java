@@ -22,7 +22,18 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
 
+// Prabin's part: imports for the database
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.JOptionPane;
+
 public class EmployeeSearchFrame extends JFrame {
+
 
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
@@ -34,6 +45,18 @@ public class EmployeeSearchFrame extends JFrame {
 	private JList<String> lstProject;
 	private DefaultListModel<String> project = new DefaultListModel<String>();
 	private JTextArea textAreaEmployee;
+
+        // Prabin's part: database connection and the real ID numbers behind the lists.
+        // deptIds.get(i) is the Dnumber of the department shown at index i in lstDepartment.
+        // projIds.get(i) is the Pnumber of the project shown at index i in lstProject.
+        private Connection conn;
+        private final List<Integer> deptIds = new ArrayList<Integer>();
+        private final List<Integer> projIds = new ArrayList<Integer>();
+        private static final String URL_PREFIX = "jdbc:mysql://localhost:3306/";
+        private static final String USER = "projuser";
+        // The password is read from an environment variable so it is never committed to GitHub.
+        private static final String PASS =
+                System.getenv("DB_PASS") == null ? "" : System.getenv("DB_PASS");
 	/**
 	 * Launch the application.
 	 */
@@ -171,24 +194,84 @@ JButton btnSearch = new JButton("Search");
 		textAreaEmployee.setText("Click Fill to load departments and projects.");
 	}
 
+	// TODO Member 3: replace this sample output with database-backed search.
 	private void search() {
 		textAreaEmployee.setText("John Smith\nFranklin Wong");
 	}
 
-	private void fill() {
-		department.clear();
-		project.clear();
+        // Prabin's part: connect to the database named in txtDatabase and fill both lists.
+        private void fill() {
+                String dbName = txtDatabase.getText().trim();
+                try {
+                        if (dbName.isEmpty()) {
+                                throw new SQLException("Database name is empty");
+                        }
 
-		String[] dept = {"Headquarters", "Reorganization"};
-		for (int i = 0; i < dept.length; i++) {
-			department.addElement(dept[i]);
-		}
+                        // Close any previous connection, then open the new one
+                        if (conn != null) {
+                                conn.close();
+                                conn = null;
+                        }
+                        conn = DriverManager.getConnection(URL_PREFIX + dbName, USER, PASS);
 
-		String[] prj = {"ProdoctX", "ProductY", "ProductZ"};
-		for (int j = 0; j < prj.length; j++) {
-			project.addElement(prj[j]);
-		}
-	}
+                        // Read everything into temporary lists first
+                        List<Integer> newDeptIds = new ArrayList<Integer>();
+                        List<String> newDeptNames = new ArrayList<String>();
+                        List<Integer> newProjIds = new ArrayList<Integer>();
+                        List<String> newProjNames = new ArrayList<String>();
+
+                        try (Statement s = conn.createStatement();
+                             ResultSet rs = s.executeQuery(
+                                     "SELECT Dnumber, Dname FROM DEPARTMENT ORDER BY Dname")) {
+                                while (rs.next()) {
+                                        newDeptIds.add(rs.getInt(1));
+                                        newDeptNames.add(rs.getString(2));
+                                }
+                        }
+                        try (Statement s = conn.createStatement();
+                             ResultSet rs = s.executeQuery(
+                                     "SELECT Pnumber, Pname FROM PROJECT ORDER BY Pname")) {
+                                while (rs.next()) {
+                                        newProjIds.add(rs.getInt(1));
+                                        newProjNames.add(rs.getString(2));
+                                }
+                        }
+
+                        // Everything loaded, so now reset the window (Fill = full reset)
+                        department.clear();
+                        project.clear();
+                        deptIds.clear();
+                        projIds.clear();
+                        for (int i = 0; i < newDeptIds.size(); i++) {
+                                deptIds.add(newDeptIds.get(i));
+                                department.addElement(newDeptNames.get(i));
+                        }
+                        for (int i = 0; i < newProjIds.size(); i++) {
+                                projIds.add(newProjIds.get(i));
+                                project.addElement(newProjNames.get(i));
+                        }
+                        lstDepartment.clearSelection();
+                        lstProject.clearSelection();
+                        textAreaEmployee.setText("");
+                        chckbxNotDept.setSelected(false);
+                        chckbxNotProject.setSelected(false);
+
+                } catch (SQLException ex) {
+                        if (conn != null) {
+                                try { conn.close(); } catch (SQLException ignored) { }
+                        }
+                        conn = null;
+                        department.clear();
+                        project.clear();
+                        deptIds.clear();
+                        projIds.clear();
+                        textAreaEmployee.setText("");
+                        JOptionPane.showMessageDialog(this,
+                                "The database could not be opened.",
+                                "Error", JOptionPane.ERROR_MESSAGE);
+                }
+        }
+
 
 	private void clear() {
 		textAreaEmployee.setText("");
@@ -198,4 +281,6 @@ JButton btnSearch = new JButton("Search");
 		chckbxNotProject.setSelected(false);
 	}
 
+
 }
+
