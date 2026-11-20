@@ -54,7 +54,8 @@ public class EmployeeSearchFrame extends JFrame {
         private final List<Integer> deptIds = new ArrayList<Integer>();
         private final List<Integer> projIds = new ArrayList<Integer>();
         private static final String URL_PREFIX = "jdbc:mysql://localhost:3306/";
-        private static final String USER = "projuser";
+        private static final String USER =
+                System.getenv("DB_USER") == null ? "projuser" : System.getenv("DB_USER");
         // The password is read from an environment variable so it is never committed to GitHub.
         private static final String PASS =
                 System.getenv("DB_PASS") == null ? "" : System.getenv("DB_PASS");
